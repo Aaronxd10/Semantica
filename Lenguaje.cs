@@ -4,21 +4,21 @@ using System;
 using System.Collections.Generic;
 //Unidad 3
 //Requerimiento 1: 
-//  x a) Agregar el residuo de la division en el PorFactor()
-//  x b) Agregar en instruccion los incrementos de termino() y los incrementos de factor()
+//    a) Agregar el residuo de la division en el PorFactor()
+//    b) Agregar en instruccion los incrementos de termino() y los incrementos de factor()
 //     a++, a--, a+=1, a-=1, a*=1, a/=1, a%=1
 //     en donde el 1 puede ser una expresion
-//  c) Programar el destructor 
+//    c) Programar el destructor 
 //        para ejecutar el metodo cerrarArchivo()
 //        #libreria especial? contenedor?
 //        #en la clase lexico
 //Requerimiento 2:
-//  c) Marcar errores semanticos cuando los incrementos de termino() o incrementos de factor() superen el limite de la variable
-//  d) Considerar el inciso b y c para el for
-//  e) Correcto funcionamiento del ciclo while y do while
+//  a) Marcar errores semanticos cuando los incrementos de termino() o incrementos de factor() superen el limite de la variable
+//  b) Considerar el inciso b y c para el for
+//  c) Correcto funcionamiento del ciclo while y do while
 //Requerimiento 3:
 //  a) Considerar las variables y los casteos en las expresiones matematicas en ensamblador
-//  B) Considerar el residuo de la division en assembler
+//  b) Considerar el residuo de la division en assembler
 //  c) Programar el printf y scanf en assembler
 // Requerimiento 4:
 //  a) Programar el else en assembler
@@ -295,8 +295,6 @@ namespace Semantica
                 throw new Error("No existe la variable<" + getContenido() + "> en linea: " + linea, log);
 
             }
-            log.WriteLine();
-            log.Write(getContenido() + " = ");
             string nombre = getContenido();
             match(Tipos.Identificador);
             if (getClasificacion() == Tipos.IncrementoTermino || getClasificacion() == Tipos.IncrementoFactor)
@@ -306,31 +304,32 @@ namespace Semantica
             }
             else
             {
-
-            }
-            match(Tipos.Asignacion);
-            dominante = Variable.TipoDato.Char;
-            Expresion();
-            match(";");
-            float resultado = stack.Pop();
-            asm.WriteLine("POP AX");
-            log.Write("= " + resultado);
-            log.WriteLine();
-            if (dominante < evaluaNumero(resultado))
-            {
-                dominante = evaluaNumero(resultado);
-            }
-            if (dominante <= getTipo(nombre))
-            {
-                if (evaluacion)
+                log.WriteLine();
+                log.Write(getContenido() + " = ");
+                match(Tipos.Asignacion);
+                dominante = Variable.TipoDato.Char;
+                Expresion();
+                match(";");
+                float resultado = stack.Pop();
+                asm.WriteLine("POP AX");
+                log.Write("= " + resultado);
+                log.WriteLine();
+                if (dominante < evaluaNumero(resultado))
                 {
-                    modVariable(nombre, resultado);
-                    asm.WriteLine("MOV " + nombre + ", AX");
+                    dominante = evaluaNumero(resultado);
                 }
-            }
-            else
-            {
-                throw new Error("Error de semantica: no podemos asignar un: <" + dominante + "> a un <" + getTipo(nombre) + "> en linea  " + linea, log);
+                if (dominante <= getTipo(nombre))
+                {
+                    if (evaluacion)
+                    {
+                        modVariable(nombre, resultado);
+                    }
+                }
+                else
+                {
+                    throw new Error("Error de semantica: no podemos asignar un: <" + dominante + "> a un <" + getTipo(nombre) + "> en linea  " + linea, log);
+                }
+                asm.WriteLine("MOV " + nombre + ", AX");
             }
 
         }
@@ -388,67 +387,75 @@ namespace Semantica
             match("for");
             match("(");
             Asignacion(evaluacion);
-            bool ValidarFor;
-            string variable = getContenido();
-            int pos = posicion;
+            int pos = posicion - 1;
             int lin = linea;
+            string name;
+            int cambio = 0;
+            bool validarFor = Condicion("");
             do
             {
-                ValidarFor = Condicion("");
-                if (!evaluacion)
-                {
-                    ValidarFor = false;
-                }
+                archivo.DiscardBufferedData();
+                archivo.BaseStream.Seek(pos, SeekOrigin.Begin);
+                posicion = pos;
+                linea = lin;
+                NextToken();
+                validarFor = Condicion("");
                 match(";");
-                Incremento(ValidarFor);
-                //Requerimiento 1.d
+                name = getContenido();
+                cambio = Incremento();
                 match(")");
                 if (getContenido() == "{")
+                    BloqueInstrucciones(evaluacion && validarFor);
+                else
+                    Instruccion(evaluacion && validarFor);
+                if (evaluacion && validarFor)
+                    modVariable(name, getValor(name) + cambio);
+                // Requerimiento 1.d:
+            } while (evaluacion && validarFor);
+            asm.WriteLine(etiquetaFinFor + " ;");
+        }
+        // Incremento -> identificador ++ | --
+        private int Incremento()
+        {
+            int cambio = 0;
+            match(Tipos.Identificador);
+            if (getClasificacion() == Tipos.IncrementoTermino)
+            {
+                if (getContenido()[0] == '+')
                 {
-                    BloqueInstrucciones(ValidarFor);
+                    match("++"); cambio = 1;
                 }
                 else
                 {
-                    Instruccion(ValidarFor);
+                    match("--"); cambio = -1;
                 }
-                if (ValidarFor)
-                {
-                    posicion = pos - variable.Length;
-                    linea = lin;
-                    archivo.DiscardBufferedData();
-                    archivo.BaseStream.Seek(posicion, SeekOrigin.Begin);
-                    NextToken();
-                }
-            } while (ValidarFor);
-            asm.WriteLine(etiquetaFinFor + " ;");
+            }
+            else
+                match(Tipos.IncrementoTermino);
+            return cambio;
         }
-
         //Incremento -> Identificador ++ | --
         private void Incremento(bool evaluacion)
         {
             string variable = getContenido();
-            if (!existeVariable(getContenido()))
+            if (getClasificacion() == Tipos.IncrementoTermino)
             {
-                throw new Error("No existe la variable<" + getContenido() + "> en linea: " + linea, log);
-
-            }
-            match(Tipos.Identificador);
-            if (getContenido() == "++")
-            {
-                match("++");
-                if (evaluacion)
+                if (getContenido() == "++")
                 {
-                    modVariable(variable, getValor(variable) + 1);
+                    match("++");
+                    if (evaluacion)
+                        modVariable(variable, getValor(variable) + 1);
+                }
+                else
+                {
+                    match("--");
+                    if (evaluacion)
+                        modVariable(variable, getValor(variable) - 1);
                 }
             }
             else
-            {
-                match("--");
-                if (evaluacion)
-                {
-                    modVariable(variable, getValor(variable) - 1);
-                }
-            }
+                throw new Error("\nError de sintaxis en linea " + linea + ". Se esperaba un " + Tipos.IncrementoFactor + " o " + Tipos.IncrementoTermino, log);
+            
         }
 
         //Switch -> switch (Expresion) {Lista de casos} | (default: )
@@ -644,6 +651,8 @@ namespace Semantica
             match(Tipos.Identificador);
             match(")");
             match(";");
+            asm.WriteLine("CALL SCAN_NUM");
+            asm.WriteLine("MOV " + getContenido() + ", CX");
         }
         //Expresion -> Termino MasTermino
         private void Expresion()
