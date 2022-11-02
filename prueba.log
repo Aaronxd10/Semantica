@@ -1,0 +1,15 @@
+Archivo: prueba.cpp
+28/10/2022 09:36:53 a. m.
+
+variables: 
+area Float 0
+radio Float 10
+pi Float 0
+resultado Float 0
+a Int 0
+d Int 0
+altura Int 0
+x Float 0
+y Char 0
+i Int 0
+j Int 0
