@@ -4,28 +4,28 @@ using System;
 using System.Collections.Generic;
 //Unidad 3
 //Requerimiento 1: 
-//    a) Agregar el residuo de la division en el PorFactor()
-//    b) Agregar en instruccion los incrementos de termino() y los incrementos de factor()
-//     a++, a--, a+=1, a-=1, a*=1, a/=1, a%=1
-//     en donde el 1 puede ser una expresion
-//    c) Programar el destructor 
-//        para ejecutar el metodo cerrarArchivo()
-//        #libreria especial? contenedor?
-//        #en la clase lexico
+//      a) Agregar el residuo de la division en el PorFactor()---->Listo
+//      b) Agregar en instruccion los incrementos de termino() y los incrementos de factor()
+//         a++, a--, a+=1, a-=1, a*=1, a/=1, a%=1
+//         en donde el 1 puede ser una expresion
+//      c) Programar el destructor 
+//         para ejecutar el metodo cerrarArchivo()
+//         #libreria especial? contenedor?
+//         #en la clase lexico
 //Requerimiento 2:
-//  a) Marcar errores semanticos cuando los incrementos de termino() o incrementos de factor() superen el limite de la variable
-//  b) Considerar el inciso b y c para el for
-//  c) Correcto funcionamiento del ciclo while y do while
+//      a) Marcar errores semanticos cuando los incrementos de termino() o incrementos de factor() superen el limite de la variable
+//      b) Considerar el inciso b y c para el for
+//      c) Correcto funcionamiento del ciclo while y do while
 //Requerimiento 3:
-//  a) Considerar las variables y los casteos en las expresiones matematicas en ensamblador
-//  b) Considerar el residuo de la division en assembler
-//  c) Programar el printf y scanf en assembler
+//      a) Considerar las variables y los casteos en las expresiones matematicas en ensamblador
+//      b) Considerar el residuo de la division en assembler
+//      c) Programar el printf y scanf en assembler
 // Requerimiento 4:
-//  a) Programar el else en assembler
-//  b) Programar el for en assembler
+//      a) Programar el else en assembler
+//      b) Programar el for en assembler
 // Requerimiento 5:
-//  a) Programar el while en assembler
-//  b) Programar el do while en assembler
+//      a) Programar el while en assembler
+//      b) Programar el do while en assembler
 namespace Semantica
 {
     public class Lenguaje : Sintaxis
@@ -92,6 +92,7 @@ namespace Semantica
                 if (v.getNombre() == nombre)
                 {
                     v.setValor(nuevoValor);
+                    break;
                 }
 
         }
@@ -99,21 +100,25 @@ namespace Semantica
         {
             float n = 0;
             foreach (Variable v in variables)
+            {
                 if (v.getNombre() == nombre)
                 {
                     n = v.getValor();
-                    return n;
+                    break;
                 }
-            return 0;
+            }
+            return n;
         }
         private Variable.TipoDato getTipo(string nombre)
         {
 
             foreach (Variable v in variables)
+            {
                 if (v.getNombre() == nombre)
                 {
                     return v.getTipo();
                 }
+            }
             return Variable.TipoDato.Char;
         }
         //Programa  -> Librerias? Variables? Main
@@ -275,7 +280,7 @@ namespace Semantica
             {
                 return Variable.TipoDato.Char;
             }
-            else if (resultado <= 65335)
+            else if (resultado <= 65535)
             {
                 return Variable.TipoDato.Int;
             }
@@ -284,21 +289,28 @@ namespace Semantica
         }
         private bool evaluaSemantica(string variable, float resultado)
         {
-            Variable.TipoDato tipoDato = getTipo(variable);
+           /* Variable.TipoDato tipoDato = getTipo(variable);
+            return false;*/
+             if (evaluaNumero(resultado) <= getTipo(variable))
+             {
+                return true;
+             }
             return false;
         }
         //Asignacion -> identificador = cadena | Expresion;
         private void Asignacion(bool evaluacion)
         {
-            if (!existeVariable(getContenido()))
+            string nombre = getContenido();
+            if (!existeVariable(nombre))
             {
                 throw new Error("No existe la variable<" + getContenido() + "> en linea: " + linea, log);
 
             }
-            string nombre = getContenido();
             match(Tipos.Identificador);
             if (getClasificacion() == Tipos.IncrementoTermino || getClasificacion() == Tipos.IncrementoFactor)
             {
+                Incremento(nombre, evaluacion);
+                match(";");
                 //Requerimiento 1.b
                 //Requerimiento 1.c
             }
@@ -306,7 +318,7 @@ namespace Semantica
             {
                 log.WriteLine();
                 log.Write(getContenido() + " = ");
-                match(Tipos.Asignacion);
+                match("=");
                 dominante = Variable.TipoDato.Char;
                 Expresion();
                 match(";");
@@ -389,9 +401,9 @@ namespace Semantica
             Asignacion(evaluacion);
             int pos = posicion - 1;
             int lin = linea;
-            string name;
-            int cambio = 0;
-            bool validarFor = Condicion("");
+            string nombre;
+            float cam = 0;
+            bool validarFor;
             do
             {
                 archivo.DiscardBufferedData();
@@ -401,61 +413,84 @@ namespace Semantica
                 NextToken();
                 validarFor = Condicion("");
                 match(";");
-                name = getContenido();
-                cambio = Incremento();
+                nombre = getContenido();
+                match(Tipos.Identificador);
+                cam = Incremento(nombre, false);
                 match(")");
                 if (getContenido() == "{")
                     BloqueInstrucciones(evaluacion && validarFor);
                 else
                     Instruccion(evaluacion && validarFor);
                 if (evaluacion && validarFor)
-                    modVariable(name, getValor(name) + cambio);
+                    modVariable(nombre, cam);
                 // Requerimiento 1.d:
             } while (evaluacion && validarFor);
             asm.WriteLine(etiquetaFinFor + " ;");
         }
-        // Incremento -> identificador ++ | --
-        private int Incremento()
-        {
-            int cambio = 0;
-            match(Tipos.Identificador);
-            if (getClasificacion() == Tipos.IncrementoTermino)
-            {
-                if (getContenido()[0] == '+')
-                {
-                    match("++"); cambio = 1;
-                }
-                else
-                {
-                    match("--"); cambio = -1;
-                }
-            }
-            else
-                match(Tipos.IncrementoTermino);
-            return cambio;
-        }
         //Incremento -> Identificador ++ | --
-        private void Incremento(bool evaluacion)
+         private float Incremento(string nombre, bool evaluacion)
         {
-            string variable = getContenido();
+            float cam = 0;
             if (getClasificacion() == Tipos.IncrementoTermino)
             {
                 if (getContenido() == "++")
                 {
                     match("++");
-                    if (evaluacion)
-                        modVariable(variable, getValor(variable) + 1);
+                    cam = getValor(nombre) + 1;
+                }
+                else if (getContenido() == "+=")
+                {
+                    match("+=");
+                    Expresion();
+                    float resultado = stack.Pop();
+                    cam = getValor(nombre) + resultado;
+                }
+                else if (getContenido() == "--")
+                {
+                    match("--");
+                    cam = getValor(nombre) - 1;
                 }
                 else
                 {
-                    match("--");
-                    if (evaluacion)
-                        modVariable(variable, getValor(variable) - 1);
+                    match("-=");
+                    Expresion();
+                    float resultado = stack.Pop();
+                    cam = getValor(nombre) - resultado;
+                }
+            }
+            else if (getClasificacion() == Tipos.IncrementoFactor)
+            {
+                if (getContenido() == "*=")
+                {
+                    match("*=");
+                    Expresion();
+                    float resultado = stack.Pop();
+                    cam = getValor(nombre) * resultado;
+                }
+                else if (getContenido() == "/=")
+                {
+                    match("/=");
+                    Expresion();
+                    float resultado = stack.Pop();
+                    cam = getValor(nombre) / resultado;
+                }
+                else
+                {
+                    match("%=");
+                    Expresion();
+                    float resultado = stack.Pop();
+                    cam = getValor(nombre) % resultado;
                 }
             }
             else
                 throw new Error("\nError de sintaxis en linea " + linea + ". Se esperaba un " + Tipos.IncrementoFactor + " o " + Tipos.IncrementoTermino, log);
-            
+            if (evaluacion)
+            {
+                if (!evaluaSemantica(nombre, cam))
+                    throw new Error("Error de semantica en linea " + linea + ". No se puede asignar un <" + evaluaNumero(cam) + "> a un <" + getTipo(nombre) + ">", log);
+                modVariable(nombre, cam);
+            }
+            return cam;
         }
 
         //Switch -> switch (Expresion) {Lista de casos} | (default: )
@@ -719,8 +754,13 @@ namespace Semantica
                         stack.Push(n2 / n1);
                         asm.WriteLine("DIV BX");
                         asm.WriteLine("PUSH AX");
-                        //Residuo en DX
-                        //Resultado de la division en AX
+                        break;
+                    //Residuo en DX
+                    //Resultado de la division en AX
+                    case "%":
+                        stack.Push(n2 % n1);
+                        asm.WriteLine("DIV BX");
+                        asm.WriteLine("PUSH DX");
                         break;
                 }
             }

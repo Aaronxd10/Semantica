@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\aaron\\Documents\\Lenguajes y automatas II\\Unidad 3\\Semantica\\Semantica\\Semantica.csproj",
+      "projectUniqueName": "C:\\Users\\aaron\\Documents\\Lenguajes y automatas II\\Unidad 3\\Semantica\\Semantica.csproj",
       "projectName": "Semantica",
-      "projectPath": "C:\\Users\\aaron\\Documents\\Lenguajes y automatas II\\Unidad 3\\Semantica\\Semantica\\Semantica.csproj",
+      "projectPath": "C:\\Users\\aaron\\Documents\\Lenguajes y automatas II\\Unidad 3\\Semantica\\Semantica.csproj",
       "packagesPath": "C:\\Users\\aaron\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\aaron\\Documents\\Lenguajes y automatas II\\Unidad 3\\Semantica\\Semantica\\obj\\",
+      "outputPath": "C:\\Users\\aaron\\Documents\\Lenguajes y automatas II\\Unidad 3\\Semantica\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\aaron\\AppData\\Roaming\\NuGet\\NuGet.Config"
