@@ -5,17 +5,17 @@ using System.Collections.Generic;
 //Unidad 3
 //Requerimiento 1: 
 //      a) Agregar el residuo de la division en el PorFactor()---->Listo
-//      b) Agregar en instruccion los incrementos de termino() y los incrementos de factor()
+//      b) Agregar en instruccion los incrementos de termino() y los incrementos de factor()---->Listo
 //         a++, a--, a+=1, a-=1, a*=1, a/=1, a%=1
 //         en donde el 1 puede ser una expresion
-//      c) Programar el destructor 
+//      c) Programar el destructor---->Listo
 //         para ejecutar el metodo cerrarArchivo()
 //         #libreria especial? contenedor?
 //         #en la clase lexico
 //Requerimiento 2:
-//      a) Marcar errores semanticos cuando los incrementos de termino() o incrementos de factor() superen el limite de la variable
-//      b) Considerar el inciso b y c para el for
-//      c) Correcto funcionamiento del ciclo while y do while
+//      a) Marcar errores semanticos cuando los incrementos de termino() o incrementos de factor() superen el limite de la variable---->Listo
+//      b) Considerar el inciso b y c para el for---->Listo
+//      c) Correcto funcionamiento del ciclo while y do while---->Listo
 //Requerimiento 3:
 //      a) Considerar las variables y los casteos en las expresiones matematicas en ensamblador
 //      b) Considerar el residuo de la division en assembler
@@ -289,12 +289,12 @@ namespace Semantica
         }
         private bool evaluaSemantica(string variable, float resultado)
         {
-           /* Variable.TipoDato tipoDato = getTipo(variable);
-            return false;*/
-             if (evaluaNumero(resultado) <= getTipo(variable))
-             {
+            /* Variable.TipoDato tipoDato = getTipo(variable);
+             return false;*/
+            if (evaluaNumero(resultado) <= getTipo(variable))
+            {
                 return true;
-             }
+            }
             return false;
         }
         //Asignacion -> identificador = cadena | Expresion;
@@ -351,43 +351,57 @@ namespace Semantica
         {
             match("while");
             match("(");
-            bool ValidarWhile = Condicion("");
-            if (!evaluacion)
+            bool validarWhile;
+            int pos = posicion - 1;
+            int lin = linea;
+            do
             {
-                ValidarWhile = false;
-            }
-            match(")");
-            if (getContenido() == "{")
-            {
-                BloqueInstrucciones(evaluacion);
-            }
-            else
-            {
-                Instruccion(evaluacion);
-            }
+                archivo.DiscardBufferedData();
+                archivo.BaseStream.Seek(pos, SeekOrigin.Begin);
+                posicion = pos;
+                linea = lin;
+                NextToken();
+                validarWhile = Condicion("");
+                match(")");
+                if (getContenido() == "{")
+                {
+                    BloqueInstrucciones(evaluacion && validarWhile);
+                }
+                else
+                {
+                    Instruccion(evaluacion && validarWhile);
+                }
+            } while (evaluacion && validarWhile);
         }
 
         //Do -> do bloque de instrucciones | intruccion while(Condicion)
         private void Do(bool evaluacion)
         {
             match("do");
-            if (getContenido() == "{")
+            bool ValidarDo = false;
+            int pos = posicion - 1;
+            int lin = linea;
+            do
             {
-                BloqueInstrucciones(evaluacion);
-            }
-            else
-            {
-                Instruccion(evaluacion);
-            }
-            match("while");
-            match("(");
-            bool ValidarDo = Condicion("");
-            if (!evaluacion)
-            {
-                ValidarDo = false;
-            }
-            match(")");
-            match(";");
+                archivo.DiscardBufferedData();
+                archivo.BaseStream.Seek(pos, SeekOrigin.Begin);
+                posicion = pos;
+                linea = lin;
+                NextToken();
+                if (getContenido() == "{")
+                {
+                    BloqueInstrucciones(evaluacion && ValidarDo);
+                }
+                else
+                {
+                    Instruccion(evaluacion && ValidarDo);
+                }
+                match("while");
+                match("(");
+                ValidarDo = Condicion("");
+                match(")");
+                match(";");
+            } while (ValidarDo);
         }
 
         //For -> for(Asignacion Condicion; Incremento) BloqueInstruccones | Intruccion 
@@ -418,76 +432,91 @@ namespace Semantica
                 cam = Incremento(nombre, false);
                 match(")");
                 if (getContenido() == "{")
+                {
                     BloqueInstrucciones(evaluacion && validarFor);
+                }
                 else
+                {
                     Instruccion(evaluacion && validarFor);
+                }
                 if (evaluacion && validarFor)
+                {
                     modVariable(nombre, cam);
-                // Requerimiento 1.d:
+                }
             } while (evaluacion && validarFor);
             asm.WriteLine(etiquetaFinFor + " ;");
         }
         //Incremento -> Identificador ++ | --
-         private float Incremento(string nombre, bool evaluacion)
+        private float Incremento(string nombre, bool evaluacion)
         {
             float cam = 0;
+            float resultado = 0;
             if (getClasificacion() == Tipos.IncrementoTermino)
             {
                 if (getContenido() == "++")
                 {
+                    if (getTipo(nombre) == Variable.TipoDato.Char && cam > 255)
+                    {
+                        throw new Error("Error de semantica <" + nombre + "> se excede del rango char en la linea: " + linea, log);
+                    }
+                    else if (getTipo(nombre) == Variable.TipoDato.Int && cam > 65535)
+                    {
+                        throw new Error("Error de semantica <" + nombre + "> se excede el rango int en la linea: " + linea, log);
+                    }
                     match("++");
                     cam = getValor(nombre) + 1;
-                }
-                else if (getContenido() == "+=")
-                {
-                    match("+=");
-                    Expresion();
-                    float resultado = stack.Pop();
-                    cam = getValor(nombre) + resultado;
                 }
                 else if (getContenido() == "--")
                 {
                     match("--");
                     cam = getValor(nombre) - 1;
                 }
-                else
+                else if (getContenido() == "+=")
+                {
+                    match("+=");
+                    Expresion();
+                    resultado = stack.Pop();
+                    cam = getValor(nombre) + resultado;
+                }
+                else if (getContenido() == "-=")
                 {
                     match("-=");
                     Expresion();
-                    float resultado = stack.Pop();
+                    resultado = stack.Pop();
                     cam = getValor(nombre) - resultado;
                 }
-            }
-            else if (getClasificacion() == Tipos.IncrementoFactor)
-            {
-                if (getContenido() == "*=")
+                else if (getContenido() == "*=")
                 {
                     match("*=");
                     Expresion();
-                    float resultado = stack.Pop();
+                    resultado = stack.Pop();
                     cam = getValor(nombre) * resultado;
                 }
                 else if (getContenido() == "/=")
                 {
                     match("/=");
                     Expresion();
-                    float resultado = stack.Pop();
+                    resultado = stack.Pop();
                     cam = getValor(nombre) / resultado;
                 }
-                else
+                else if (getContenido() == "%=")
                 {
                     match("%=");
                     Expresion();
-                    float resultado = stack.Pop();
+                    resultado = stack.Pop();
                     cam = getValor(nombre) % resultado;
                 }
             }
             else
+            {
                 throw new Error("\nError de sintaxis en linea " + linea + ". Se esperaba un " + Tipos.IncrementoFactor + " o " + Tipos.IncrementoTermino, log);
+            }
             if (evaluacion)
             {
                 if (!evaluaSemantica(nombre, cam))
+                {
                     throw new Error("Error de semantica en linea " + linea + ". No se puede asignar un <" + evaluaNumero(cam) + "> a un <" + getTipo(nombre) + ">", log);
+                }
                 modVariable(nombre, cam);
             }
             return cam;
