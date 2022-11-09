@@ -71,7 +71,18 @@ namespace Semantica
             asm.WriteLine(";Variables");
             foreach (Variable v in variables)
             {
-                asm.WriteLine("\t" + v.getNombre() + " DW ? ");
+                if (v.getTipo() == Variable.TipoDato.Char)
+                {
+                    asm.WriteLine("\t" + v.getNombre() + " DB ?");
+                }
+                if (v.getTipo() == Variable.TipoDato.Int)
+                {
+                    asm.WriteLine("\t" + v.getNombre() + " DW ?");
+                }
+                if(v.getTipo() == Variable.TipoDato.Float)
+                {
+                    asm.WriteLine("\t" + v.getNombre() + " DD ?");
+                }
             }
         }
 
@@ -715,8 +726,8 @@ namespace Semantica
             match(Tipos.Identificador);
             match(")");
             match(";");
-            asm.WriteLine("CALL SCAN_NUM");
-            asm.WriteLine("MOV " + getContenido() + ", CX");
+            //asm.WriteLine("CALL SCAN_NUM");
+            //asm.WriteLine("MOV " + getContenido() + ", CX");
         }
         //Expresion -> Termino MasTermino
         private void Expresion()
@@ -861,9 +872,12 @@ namespace Semantica
                     {
                         case Variable.TipoDato.Char:
                             stack.Push((char)val % 256);
+                            asm.WriteLine("MOV AH, 0");
+                            asm.WriteLine("PUSH AX");
                             break;
                         case Variable.TipoDato.Int:
                             stack.Push((int)val % 65535);
+                            asm.WriteLine("PUSH AX");
                             break;
                         case Variable.TipoDato.Float:
                             stack.Push((float)val);
