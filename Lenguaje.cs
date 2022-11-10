@@ -17,11 +17,11 @@ using System.Collections.Generic;
 //      b) Considerar el inciso b y c para el for---->Listo
 //      c) Correcto funcionamiento del ciclo while y do while---->Listo
 //Requerimiento 3:
-//      a) Considerar las variables y los casteos en las expresiones matematicas en ensamblador---->Listo
-//      b) Considerar el residuo de la division en assembler---->Listo
-//      c) Programar el printf y scanf en assembler---->Listo
+//      a) Considerar las variables y los casteos en las expresiones matematicas en ensamblador
+//      b) Considerar el residuo de la division en assembler
+//      c) Programar el printf y scanf en assembler
 // Requerimiento 4:
-//      a) Programar el else en assembler---->Listo
+//      a) Programar el else en assembler
 //      b) Programar el for en assembler
 // Requerimiento 5:
 //      a) Programar el while en assembler
@@ -37,17 +37,14 @@ namespace Semantica
 
         int cif;
         int cfor;
-        int celse;
-        int cwhile;
-        int cdo;
 
         public Lenguaje()
         {
-            cif = cfor = celse = cwhile = cdo = 0;
+            cif = cfor = 0;
         }
         public Lenguaje(string nombre) : base(nombre)
         {
-            cif = cfor = celse = cwhile = cdo = 0;
+            cif = cfor = 0;
         }
         ~Lenguaje()
         {
@@ -82,7 +79,7 @@ namespace Semantica
                 {
                     asm.WriteLine("\t" + v.getNombre() + " DW ?");
                 }
-                if (v.getTipo() == Variable.TipoDato.Float)
+                if(v.getTipo() == Variable.TipoDato.Float)
                 {
                     asm.WriteLine("\t" + v.getNombre() + " DD ?");
                 }
@@ -363,14 +360,11 @@ namespace Semantica
         //While -> while(Condicion) bloque de instrucciones | instruccion
         private void While(bool evaluacion)
         {
-            string etiquetaInicioWhile = "While" + cwhile;
-            string etiquetaFinWhile = "Fin While" + cwhile++;
             match("while");
             match("(");
             bool validarWhile;
             int pos = posicion - 1;
             int lin = linea;
-            asm.WriteLine(etiquetaInicioWhile + ":");
             do
             {
                 archivo.DiscardBufferedData();
@@ -378,7 +372,7 @@ namespace Semantica
                 posicion = pos;
                 linea = lin;
                 NextToken();
-                validarWhile = Condicion(etiquetaFinWhile);
+                validarWhile = Condicion("");
                 match(")");
                 if (getContenido() == "{")
                 {
@@ -388,21 +382,16 @@ namespace Semantica
                 {
                     Instruccion(evaluacion && validarWhile);
                 }
-                asm.WriteLine("JMP " + etiquetaInicioWhile);
             } while (evaluacion && validarWhile);
-            asm.WriteLine(etiquetaFinWhile + ":");
         }
 
         //Do -> do bloque de instrucciones | intruccion while(Condicion)
         private void Do(bool evaluacion)
         {
-            string etiquetaInicioDo = "Do" + cdo;
-            string etiquetaFinDo = "Fin Do" + cdo++;
             match("do");
             bool ValidarDo = false;
             int pos = posicion - 1;
             int lin = linea;
-            asm.WriteLine(etiquetaInicioDo + ":");
             do
             {
                 archivo.DiscardBufferedData();
@@ -420,12 +409,10 @@ namespace Semantica
                 }
                 match("while");
                 match("(");
-                ValidarDo = Condicion(etiquetaFinDo);
+                ValidarDo = Condicion("");
                 match(")");
                 match(";");
-                asm.WriteLine("JMP " + etiquetaInicioDo);
             } while (ValidarDo);
-            asm.WriteLine(etiquetaFinDo + ";");
         }
 
         //For -> for(Asignacion Condicion; Incremento) BloqueInstruccones | Intruccion 
@@ -442,7 +429,6 @@ namespace Semantica
             string nombre;
             float cam = 0;
             bool validarFor;
-            asm.WriteLine(etiquetaInicioFor + ":");
             do
             {
                 archivo.DiscardBufferedData();
@@ -450,7 +436,7 @@ namespace Semantica
                 posicion = pos;
                 linea = lin;
                 NextToken();
-                validarFor = Condicion(etiquetaFinFor);
+                validarFor = Condicion("");
                 match(";");
                 nombre = getContenido();
                 match(Tipos.Identificador);
@@ -468,7 +454,6 @@ namespace Semantica
                 {
                     modVariable(nombre, cam);
                 }
-                asm.WriteLine("JMP" + etiquetaInicioFor);
             } while (evaluacion && validarFor);
             asm.WriteLine(etiquetaFinFor + " ;");
         }
@@ -610,22 +595,22 @@ namespace Semantica
             switch (operador)
             {
                 case "==":
-                    asm.WriteLine("JNE " + etiqueta);
+                    asm.WriteLine("JNE" + etiqueta);
                     return e1 == e2;
                 case ">":
-                    asm.WriteLine("JLE " + etiqueta);
+                    asm.WriteLine("JLE" + etiqueta);
                     return e1 > e2;
                 case ">=":
-                    asm.WriteLine("JL " + etiqueta);
+                    asm.WriteLine("JL" + etiqueta);
                     return e1 >= e2;
                 case "<":
-                    asm.WriteLine("JGE " + etiqueta);
+                    asm.WriteLine("JGE" + etiqueta);
                     return e1 < e2;
                 case "<=":
-                    asm.WriteLine("JG " + etiqueta);
+                    asm.WriteLine("JG" + etiqueta);
                     return e1 <= e2;
                 default:
-                    asm.WriteLine("JE " + etiqueta);
+                    asm.WriteLine("JE" + etiqueta);
                     return e1 != e2;
 
             }
@@ -635,10 +620,9 @@ namespace Semantica
         private void If(bool evaluacion)
         {
             string etiquetaIf = "if" + ++cif;
-            string etiquetaElse = "else" + ++celse;
             match("if");
             match("(");
-            bool validarIf = Condicion(etiquetaIf);
+            bool validarIf = Condicion("");
             if (!evaluacion)
             {
                 validarIf = false;
@@ -655,8 +639,6 @@ namespace Semantica
 
             if (getContenido() == "else")
             {
-                asm.WriteLine("JMP " + etiquetaElse);
-                asm.WriteLine(etiquetaIf + ":");
                 match("else");
                 if (getContenido() == "{")
                 {
@@ -680,7 +662,6 @@ namespace Semantica
                     {
                         Instruccion(evaluacion);
                     }
-                    asm.WriteLine(etiquetaElse + ":");
                 }
             }
             cif++;
@@ -707,7 +688,6 @@ namespace Semantica
                 Expresion();
                 float resultado = stack.Pop();
                 asm.WriteLine("POP AX");
-                asm.WriteLine("CALL PRINT_NUM");
                 if (evaluacion)
                 {
                     Console.Write(resultado);
